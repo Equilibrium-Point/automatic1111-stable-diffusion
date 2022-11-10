@@ -23,67 +23,25 @@ RUN FORCE_CUDA=1 TORCH_CUDA_ARCH_LIST="7.0 7.5 8.0 8.6" \
     pip3 wheel --no-deps -e xformers
 
 
-# base container, tracks main branch
-FROM python:3.10 AS base
+FROM python:3.10-slim
 
 ENV PYTHONUNBUFFERED=1 DEBIAN_FRONTEND=noninteractive PIP_PREFER_BINARY=1 PIP_NO_CACHE_DIR=1
 
-RUN pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 --extra-index-url https://download.pytorch.org/whl/cu113
+# Store MatPlotLib config files in the app directory
+ENV MPLCONFIGDIR=/sd/.mpl_config
+# Store Transformers models in the app directory
+ENV XDG_CACHE_HOME=/sd/.xdg_cache
 
-# Install prebuilt xformers
-COPY --from=xformers xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl /xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl
-RUN pip install /xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl
-
-# Clone main branch
-RUN git clone https://github.com/Equilibrium-Point/automatic1111-stable-diffusion.git /sd
-
+COPY . /sd
 WORKDIR /sd
 
-# Install dependencies
-RUN python launch.py --skip-torch-cuda-test --exit
+COPY --from=xformers xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl /xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl
 
-# Replace opencv-python (installed as a side effect of `python launch.py`) with opencv-python-headless,
-# to remove dependency on missing libGL.so.1.
-RUN pip install opencv-python-headless
+RUN apt update && apt install git -y
 
+RUN chown -R 1000 /sd
+USER 1000:1000
 
-# download container, tracks main branch
-FROM base AS download
-
-# Download supporting models (e.g. the very large openai/clip-vit-large-patch14)
-# Create a dummy model to pass the "sd model exists" check, so SD continues initialization
-RUN python -c "import torch; torch.save({}, 'model.ckpt')" \
-    && python -c "import webui; webui.initialize()" \
-    && rm /sd/model.ckpt
-
-# Download CodeFormer models
-RUN python -c "import webui; \
-    webui.codeformer.setup_model(webui.cmd_opts.codeformer_models_path); \
-    webui.shared.face_restorers[0].create_models();"
-
-# Download GFPGAN models
-RUN python -c "import webui; \
-    webui.gfpgan.setup_model(webui.cmd_opts.gfpgan_models_path); \
-    webui.gfpgan.gfpgann()"
-
-# Download ESRGAN models
-RUN python -c "import webui; \
-    from modules.esrgan_model import UpscalerESRGAN; \
-    upscaler = UpscalerESRGAN('/sd/models/ESRGAN'); \
-    upscaler.load_model(upscaler.model_url)"
-
-
-# Slim container, applies local code, no downloads
-FROM base AS slim
-
-COPY . /sd
-
-CMD ["python", "launch.py", "--api", "--listen", "--xformers"]
-
-
-# Run container, applies local code, with downloads
-FROM download
-
-COPY . /sd
-
-CMD ["python", "launch.py", "--api", "--listen", "--xformers"]
+# Python dependencies are installed by the entrypoint to keep the docker image as small as possible.
+# To make startup faster, it's possible to mount a warmed-up SD directory at /var/sd.
+CMD ["bash", "docker_entrypoint.sh"]

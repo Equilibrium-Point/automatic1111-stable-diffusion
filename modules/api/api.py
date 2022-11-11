@@ -6,12 +6,13 @@ from threading import Lock
 from gradio.processing_utils import encode_pil_to_base64, decode_base64_to_file, decode_base64_to_image
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 import modules.shared as shared
+from modules import sd_models
 from modules.api.models import *
 from modules.processing import StableDiffusionProcessingTxt2Img, StableDiffusionProcessingImg2Img, process_images
 from modules.sd_samplers import all_samplers
 from modules.extras import run_extras, run_pnginfo
 from PIL import PngImagePlugin
-from modules.sd_models import checkpoints_list, reload_models
+from modules.sd_models import checkpoints_list
 from modules.realesrgan_model import get_realesrgan_models
 from typing import List
 
@@ -106,7 +107,7 @@ class Api:
                 ),
                 None
             )
-            reload_model_weights(None, checkpoint_info)
+            sd_models.reload_model_weights(None, checkpoint_info)
             processed = process_images(p)
 
         shared.state.end()

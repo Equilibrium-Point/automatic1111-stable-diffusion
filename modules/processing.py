@@ -421,7 +421,6 @@ def update_hypernetwork():
         shared.loaded_hypernetwork = None
 
 def process_images(p: StableDiffusionProcessing) -> Processed:
-    #import pdb;pdb.set_trace()
     stored_opts = {k: opts.data[k] for k in p.override_settings.keys() if k in opts.data}
 
     try:

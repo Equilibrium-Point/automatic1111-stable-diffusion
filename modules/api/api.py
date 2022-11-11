@@ -11,7 +11,7 @@ from modules.processing import StableDiffusionProcessingTxt2Img, StableDiffusion
 from modules.sd_samplers import all_samplers
 from modules.extras import run_extras, run_pnginfo
 from PIL import PngImagePlugin
-from modules.sd_models import checkpoints_list
+from modules.sd_models import checkpoints_list, reload_models
 from modules.realesrgan_model import get_realesrgan_models
 from typing import List
 
@@ -97,6 +97,16 @@ class Api:
         shared.state.begin()
 
         with self.queue_lock:
+            sd_model_checkpoint = txt2imgreq.override_settings['sd_model_checkpoint']
+            checkpoint_info = next(
+                (
+                    info
+                    for info in sd_models.checkpoints_list.values()
+                    if info.model_name == sd_model_checkpoint
+                ),
+                None
+            )
+            reload_model_weights(None, checkpoint_info)
             processed = process_images(p)
 
         shared.state.end()

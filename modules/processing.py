@@ -15,7 +15,6 @@ import modules.sd_hijack
 from modules import devices, prompt_parser, masking, sd_samplers, lowvram, generation_parameters_copypaste
 from modules.sd_hijack import model_hijack
 from modules.shared import opts, cmd_opts, state
-from modules.hypernetworks.hypernetwork import load_hypernetwork, find_closest_hypernetwork_name
 import modules.shared as shared
 import modules.face_restoration
 import modules.images as images
@@ -413,27 +412,18 @@ def create_infotext(p, all_prompts, all_seeds, all_subseeds, comments, iteration
 
     return f"{all_prompts[index]}{negative_prompt_text}\n{generation_params_text}".strip()
 
-
-def update_hypernetwork():
-    if opts.sd_hypernetwork:
-        load_hypernetwork(find_closest_hypernetwork_name(opts.sd_hypernetwork))
-    else:
-        shared.loaded_hypernetwork = None
-
 def process_images(p: StableDiffusionProcessing) -> Processed:
     stored_opts = {k: opts.data[k] for k in p.override_settings.keys() if k in opts.data}
 
     try:
         for k, v in p.override_settings.items():
             setattr(opts, k, v) # we don't call onchange for simplicity which makes changing model, hypernet impossible
-        update_hypernetwork()
 
         res = process_images_inner(p)
 
     finally:
         for k, v in stored_opts.items():
             setattr(opts, k, v)
-        update_hypernetwork()
 
     return res
 

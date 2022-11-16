@@ -27,4 +27,4 @@ inflection==0.5.1
 GitPython==3.1.27
 torchsde==0.2.5
 safetensors==0.2.5
-sentry-sdk=1.11.0
+sentry-sdk==1.11.0

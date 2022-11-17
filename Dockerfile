@@ -47,4 +47,4 @@ USER 1000:1000
 
 # Python dependencies are installed by the entrypoint to keep the docker image as small as possible.
 # To make startup faster, it's possible to mount a warmed-up SD directory at /var/sd.
-CMD ["bash", "docker_entrypoint.sh"]
+ENTRYPOINT ["bash", "docker_entrypoint.sh"]

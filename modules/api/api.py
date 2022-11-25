@@ -140,6 +140,7 @@ class Api:
 
             # set checkpoint
             sd_model_checkpoint = txt2imgreq.override_settings['sd_model_checkpoint']
+            print(f"txt2img requested with {sd_model_checkpoint}")
             checkpoint_info = next(
                 (
                     info
@@ -148,6 +149,7 @@ class Api:
                 ),
                 None
             )
+            print(f"got checkpoint info {checkpoint_info.model_name if checkpoint_info else None}")
             sd_models.reload_model_weights(None, checkpoint_info)
             
             gpu_tensor = None

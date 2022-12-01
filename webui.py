@@ -188,7 +188,6 @@ def webui():
             create_api(app)
 
         modules.script_callbacks.app_started_callback(shared.demo, app)
-        modules.script_callbacks.app_started_callback(shared.demo, app)
 
         logger.info(f"Launched Web UI")
 

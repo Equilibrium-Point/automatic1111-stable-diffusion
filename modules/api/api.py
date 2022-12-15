@@ -123,7 +123,22 @@ class Api:
     def text2imgapi(self, txt2imgreq: StableDiffusionTxt2ImgProcessingAPI):
         if txt2imgreq.override_settings['sd_hypernetwork']:
             txt2imgreq.override_settings['sd_hypernetwork'] = find_closest_hypernetwork_name(txt2imgreq.override_settings['sd_hypernetwork'])
-
+        
+        with self.queue_lock:
+            # set checkpoint
+            sd_model_checkpoint = txt2imgreq.override_settings['sd_model_checkpoint']
+            print(f"txt2img requested with {sd_model_checkpoint}")
+            checkpoint_info = next(
+                (
+                    info
+                    for info in sd_models.checkpoints_list.values()
+                    if info.model_name == sd_model_checkpoint
+                ),
+                None
+            )
+            print(f"got checkpoint info {checkpoint_info.model_name if checkpoint_info else None}")
+            sd_models.reload_model_weights(None, checkpoint_info)
+        
         populate = txt2imgreq.copy(update={ # Override __init__ params
             "sd_model": shared.sd_model,
             "sampler_name": validate_sampler_name(txt2imgreq.sampler_name or txt2imgreq.sampler_index),
@@ -140,22 +155,7 @@ class Api:
 
         shared.state.begin()
 
-        with self.queue_lock:
-
-            # set checkpoint
-            sd_model_checkpoint = txt2imgreq.override_settings['sd_model_checkpoint']
-            print(f"txt2img requested with {sd_model_checkpoint}")
-            checkpoint_info = next(
-                (
-                    info
-                    for info in sd_models.checkpoints_list.values()
-                    if info.model_name == sd_model_checkpoint
-                ),
-                None
-            )
-            print(f"got checkpoint info {checkpoint_info.model_name if checkpoint_info else None}")
-            sd_models.reload_model_weights(None, checkpoint_info)
-            
+        with self.queue_lock:            
             gpu_tensor = None
             if txt2imgreq.override_tensor:
                 decoded_tensor = codecs.decode(txt2imgreq.override_tensor.encode(), "base64")
